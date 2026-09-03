@@ -1,0 +1,13 @@
+# .gitignore
+.venv/
+.env
+__pycache__/
+
+# 생성물 (재실행으로 복원 가능)
+data/chroma_travel/
+checkpoints.sqlite
+store.sqlite
+travel_trace.jsonl
+guard_audit.log
+evaluation/eval_result.json
+reference/

@@ -1,0 +1,13 @@
+.git
+.env
+.venv
+__pycache__/
+*.pyc
+reference/
+docs/
+.claude/
+checkpoints.sqlite
+travel_trace.jsonl
+guard_audit.log
+evaluation/eval_result.json
+data/chroma_travel/

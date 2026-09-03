@@ -1,0 +1,35 @@
+python-dotenv
+pydantic
+
+# LangChain core + AWS Bedrock
+langchain-core
+langchain
+langchain-aws
+langchain-text-splitters
+
+# RAG / vectorstore
+langchain-chroma
+langchain-community
+langchain-classic
+
+# LangGraph / multi-agent
+langgraph
+langgraph-supervisor
+langgraph-checkpoint-sqlite
+# main.py는 async(ainvoke/aget_state)로만 그래프를 호출하므로 AsyncSqliteSaver가 필요하고,
+# 이는 aiosqlite에 의존한다 (동기 전용 SqliteSaver를 async 코드에 쓰면 런타임에 에러가 난다).
+aiosqlite
+
+# MCP
+# 주의: 서버 구현은 mcp SDK에 내장된 mcp.server.fastmcp.FastMCP를 쓴다 (별도 fastmcp 패키지 아님).
+# 최신 fastmcp(4.x)는 mcp>=2.0을 요구하는데, mcp 2.x는 langchain-mcp-adapters 0.3.x가 기대하는
+# mcp.shared.context.RequestContext를 제거해서 서로 호환되지 않는다. mcp<2.0으로 고정한다.
+mcp>=1.24.0,<2.0.0
+langchain-mcp-adapters
+
+# 공공데이터(TourAPI) 호출
+requests
+
+# 선택: 하이브리드 검색/리랭크 (고도화 시)
+# kiwipiepy
+# sentence-transformers
