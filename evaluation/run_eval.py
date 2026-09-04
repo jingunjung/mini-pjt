@@ -18,7 +18,7 @@ from agents.supervisor import build_supervisor  # noqa: E402
 from config import RECURSION_LIMIT  # noqa: E402
 from graph.guardrails import input_guard, refusal_message  # noqa: E402
 from llm_judge import judge_answer  # noqa: E402
-from utils import get_text  # noqa: E402
+from utils import get_final_answer  # noqa: E402
 
 CSV_PATH = Path(__file__).resolve().parent / "test_queries.csv"
 RESULT_PATH = Path(__file__).resolve().parent / "eval_result.json"
@@ -63,7 +63,7 @@ async def run_case(supervisor, case: dict) -> dict:
             {"messages": [HumanMessage(content=case["input"])]},
             config={"recursion_limit": RECURSION_LIMIT, "callbacks": [recorder]},
         )
-        answer = get_text(result["messages"][-1])
+        answer = get_final_answer(result["messages"])
         tools_called = recorder.tools_called
 
     judged = judge_answer(answer, expected_traits, forbidden)

@@ -18,7 +18,7 @@ from langgraph.types import interrupt  # noqa: E402
 
 from config import RECURSION_LIMIT  # noqa: E402
 from graph.guardrails import check_budget_limit, check_grounding  # noqa: E402
-from utils import get_text  # noqa: E402
+from utils import get_final_answer  # noqa: E402
 
 
 class PlannerState(TypedDict):
@@ -133,7 +133,7 @@ def _make_plan_trip_node(supervisor):
             raise RuntimeError("Supervisor가 결과를 반환하지 않았습니다.")
 
         print("🔎 가드레일 검증 중...")
-        proposal = get_text(final_state["messages"][-1])
+        proposal = get_final_answer(final_state["messages"])
 
         grounded, ground_reason = check_grounding(proposal, state["query"])
         if not grounded:
