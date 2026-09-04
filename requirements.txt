@@ -30,6 +30,13 @@ langchain-mcp-adapters
 # 공공데이터(TourAPI) 호출
 requests
 
-# 선택: 하이브리드 검색/리랭크 (고도화 시)
+# 하이브리드 검색(BM25+벡터, src/tools/rag_search_tool.py)
+rank_bm25
+
+# 표준 RAG QA API (POST /query - src/api.py)
+fastapi
+uvicorn[standard]
+
+# 선택: 고도화 시 (한국어 형태소 토크나이저 / 재랭킹) - 현재는 정규식 토크나이저로 대체
 # kiwipiepy
 # sentence-transformers

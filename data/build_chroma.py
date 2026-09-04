@@ -34,7 +34,12 @@ def load_chunks():
         for d in docs:
             d.metadata.update(meta)
             d.metadata["source"] = filename
-        chunks.extend(splitter.split_documents(docs))
+        file_chunks = splitter.split_documents(docs)
+        # chunk_id: RAG API 응답의 contexts[].doc_id로 그대로 쓰인다 - 파일명#순번 형태의
+        # 안정적인 식별자를 미리 메타데이터에 박아둔다 (Chroma 내부 uuid는 재빌드마다 바뀜).
+        for i, c in enumerate(file_chunks):
+            c.metadata["chunk_id"] = f"{filename}#{i}"
+        chunks.extend(file_chunks)
     return chunks
 
 

@@ -38,23 +38,30 @@
   테이블로 추정하고, 모르는 노선은 지어내지 않고 "정보 없음"으로 답한다.
 - **RAG 검색만 MCP로 노출**하고 예산/교통비/일정 툴은 로컬 `@tool`로 둔다 — MCP는 독립
   배포가 필요한 서비스에 적합하고, 나머지는 이 프로젝트 내부에서만 쓰이기 때문.
+- **`src/api.py`(`POST /query`)는 CLI 멀티에이전트 플로우와 별개의 표준 RAG QA API다.**
+  과제 산출물 규약(`{question}` → `{answer, contexts, trace}`)을 맞추려고 만든 것으로,
+  질문 하나에 대해 하이브리드 검색 + LCEL 체인으로 근거 기반 답변만 낸다 — 예산/일정/HITL은
+  다루지 않는다. CLI가 "여행 계획 전체"용이라면 이쪽은 "관광 데이터 Q&A"용이라고 보면 된다.
 
 ## 디렉터리 구조
 
 - `data/` — 관광 데이터(TourAPI 수집 스크립트 + 정적 md 문서) 및 Chroma 벡터DB 빌드 스크립트
-- `src/tools/` — RAG 검색(MCP), 왕복 교통비 추정기, 예산 계산기, 일정 검증기
+- `src/tools/` — RAG 검색(MCP, 하이브리드 검색·쿼리 확장 포함), 왕복 교통비 추정기, 예산
+  계산기, 일정 검증기
 - `src/agents/` — 3개 specialist agent + Supervisor 조립
 - `src/graph/` — 가드레일, HITL 포함 외곽 LangGraph
 - `src/memory/`, `src/tracing/` — 장기 기억(사용자 취향), 실행 트레이싱
-- `src/main.py` — CLI 진입점
+- `src/main.py` — CLI 진입점 (멀티에이전트 여행 계획 전체 플로우)
+- `src/api.py` — 표준 RAG QA API 진입점 (`POST /query`, FastAPI)
 - `evaluation/` — 평가셋(`test_queries.csv`)과 LLM 심사(`llm_judge.py`)/평가 실행(`run_eval.py`)
 - `docs/interview/` — 기획 단계 deep-interview 기록 (구현 시 참고용, 산출물 아님)
 - `reference/` — 7일 교육 과정 실습 코드 원본 (재사용 패턴의 출처, 직접 수정하지 않음)
 
 ## 실행 방법
 
-`run.ps1`(Windows)/`run.sh`(macOS·Linux·Git Bash)의 `setup`/`data`/`start`/`eval` 서브커맨드를
-쓴다 — 각 단계가 정확히 무슨 명령을 실행하는지는 두 스크립트 안에 그대로 적혀 있다. 자세한
+`run.ps1`(Windows)/`run.sh`(macOS·Linux·Git Bash)의 `setup`/`data`/`start`/`api`/`eval`
+서브커맨드를 쓴다 — 각 단계가 정확히 무슨 명령을 실행하는지는 두 스크립트 안에 그대로
+적혀 있다. `api`는 `POST http://localhost:8000/query`로 RAG QA API 서버를 띄운다. 자세한
 사용법은 [README.md](README.md#빠른-시작) 참고.
 
 `.env`(레포 루트)에 `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`이
@@ -69,10 +76,31 @@ import해서 쓴다. LLM은 전부 `temperature=0`(결정적 라우팅/툴 호�
 채팅 모델은 계정의 토큰 한도 스로틀링(`ThrottlingException`)이 자주 걸려서, 한 모델에
 몰지 않고 `CHAT_MODEL_IDS` 목록을 `make_chat_llm()` 호출마다 순서대로 돌려쓴다
 (`itertools.cycle`) — 현재 목록: `global.anthropic.claude-sonnet-4-5-20250929-v1:0`,
-`us.anthropic.claude-sonnet-4-6`, `global.anthropic.claude-sonnet-4-6`. 호출될 때마다
-`[모델] <model_id>`를 출력해서 어떤 모델이 쓰였는지 바로 확인할 수 있다. 목록을 조정하려면
+`us.anthropic.claude-sonnet-4-6`, `global.anthropic.claude-sonnet-4-6`. 목록을 조정하려면
 `CHAT_MODEL_IDS`만 고치면 된다 (Haiku 4.5는 평가셋 통과율이 30%로 떨어져 기본 목록에서
 뺐다 - 속도/비용이 급하지 않으면 넣지 않는 걸 권장).
+
+## 빌드 체크리스트 패턴 적용 현황
+
+과정에서 배운 12개 패턴 중 필수 4개(1·3·11·12)와 권장 6개 이상을 어디서 충족하는지 정리한다.
+
+| # | 패턴 | 충족 위치 |
+|---|---|---|
+| 1 | LCEL 체인(Pydantic 구조화 출력) **[필수]** | `src/api.py`의 `ANSWER_PROMPT \| llm.with_structured_output(RagAnswer)` |
+| 2 | ReAct(도구 자율 선택) | `src/agents/*.py`의 `create_agent` (specialist agent마다 담당 tool 자율 선택) |
+| 3 | RAG(하이브리드 검색·쿼리 확장) **[필수]** | `src/tools/rag_search_tool.py`의 `hybrid_search_with_expansion`(BM25+벡터 `EnsembleRetriever` + LLM 쿼리 확장). 리랭킹(CrossEncoder)은 무거운 신규 의존성이라 도입하지 않음 |
+| 4 | 도구 다중 | `budget_agent`가 `estimate_round_trip_transport`+`calculate_budget_allocation` 결합 등 |
+| 5 | MCP 서버 연동 | `src/tools/mcp_server.py` (`search_destination_info`) |
+| 6 | 가드레일 | `src/graph/guardrails.py` (입력: 인젝션/무관 질문/예약 대행 요청, 출력: 환각/예산 초과) |
+| 7 | HITL | `src/graph/outer_graph.py`의 `human_approval`(`interrupt()`) |
+| 8 | 미들웨어 | 미적용 — Supervisor(`langgraph_supervisor.create_supervisor`)가 middleware를 지원하지 않아 가드레일을 그래프 전후로 수동 적용하는 쪽을 택함(위 "핵심 설계 이유" 참고) |
+| 9 | Multi-Agent Supervisor | `src/agents/supervisor.py` |
+| 10 | Plan-Execute · 장기 메모리 | 장기 메모리는 `src/memory/`(취향·확정 계획을 `AsyncSqliteStore`에 영속). 명시적 Plan-Execute 단계 분해는 미적용(Supervisor의 위임 순서가 사실상 이 역할을 겸함) |
+| 11 | Observability · Trace **[필수]** | `src/api.py`가 요청마다 `guardrail → query_expansion → retrieve → generate` 단계별 trace를 응답에 포함. CLI 쪽은 `src/tracing/file_tracer.py`가 JSONL로 별도 기록(LangSmith/LangFuse 미연동) |
+| 12 | 평가(LLM-as-Judge) **[필수]** | `evaluation/run_eval.py` + `evaluation/llm_judge.py` |
+
+필수 4개는 모두 충족. 권장 6개 기준도 2·3·4·5·6·7·9·10·11·12(10개)로 충분히 넘는다. 8번
+(미들웨어)만 의도적으로 비워뒀다.
 
 ## 알려진 한계
 

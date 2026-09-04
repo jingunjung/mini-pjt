@@ -52,7 +52,6 @@ def make_chat_llm(temperature: float = 0):
     from langchain_aws import ChatBedrockConverse
 
     model_id = next(_model_cycle)
-    print(f"[모델] {model_id}")
     return ChatBedrockConverse(
         model=model_id,
         region_name=REGION,

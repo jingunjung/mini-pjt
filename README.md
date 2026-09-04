@@ -35,7 +35,8 @@ Tools/MCP, 가드레일, Human-in-the-loop, 장기 기억, 평가/트레이싱�
 ```powershell
 .\run.ps1 setup   # 가상환경 생성 + 패키지 설치
 .\run.ps1 data    # 관광 데이터 수집 + 벡터DB 빌드
-.\run.ps1 start   # CLI 실행
+.\run.ps1 start   # CLI 실행 (멀티에이전트 여행 계획 전체 플로우)
+.\run.ps1 api     # RAG QA API 서버 실행 (POST /query, http://localhost:8000)
 ```
 
 **macOS / Linux / Git Bash**
@@ -43,6 +44,7 @@ Tools/MCP, 가드레일, Human-in-the-loop, 장기 기억, 평가/트레이싱�
 ./run.sh setup
 ./run.sh data
 ./run.sh start
+./run.sh api
 ```
 
 **Docker**
@@ -88,6 +90,30 @@ TOURAPI_KEY=...
 기억에 저장되어, 다음에 프로그램을 실행하고 같은 사용자 ID로 로그인하면 시작 메뉴에서
 "저장된 계획 보기"로 다시 꺼내볼 수 있습니다. 어느 입력창에서든 `종료`를 입력하면 즉시
 안전하게 끝낼 수 있습니다.
+
+## RAG QA API
+
+CLI가 "여행 계획 전체"를 만든다면, `POST /query`는 관광 데이터에 대한 단발성 질의응답
+API입니다(하이브리드 검색+쿼리 확장 → LCEL 체인으로 근거 기반 답변, 요청마다 처리 단계별
+trace 포함).
+
+```bash
+.\run.ps1 api     # 또는: ./run.sh api  (http://localhost:8000)
+
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "제주 맛집 추천해줘"}'
+```
+
+응답 형식:
+
+```json
+{
+  "answer": "근거 기반 응답",
+  "contexts": [{"doc_id": "제주.md#3", "text": "..."}],
+  "trace": [{"step": "retrieve", "input": "...", "output": "...", "latency_ms": 123.4}]
+}
+```
 
 ## 평가
 

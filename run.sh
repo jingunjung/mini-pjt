@@ -5,6 +5,7 @@
 #   ./run.sh setup    가상환경 생성 + 패키지 설치
 #   ./run.sh data     TourAPI 데이터 수집 + Chroma 벡터DB 빌드
 #   ./run.sh start    CLI 실행 (기본 동작, 인자 없이 실행해도 동일)
+#   ./run.sh api      RAG QA API 서버 실행 (POST /query, http://localhost:8000)
 #   ./run.sh eval     평가셋(test_queries.csv) 실행
 set -euo pipefail
 
@@ -45,12 +46,16 @@ case "$COMMAND" in
         ensure_venv
         "$VENV_PY" "$REPO_ROOT/src/main.py"
         ;;
+    api)
+        ensure_venv
+        "$VENV_PY" -m uvicorn api:app --app-dir "$REPO_ROOT/src" --host 0.0.0.0 --port 8000
+        ;;
     eval)
         ensure_venv
         "$VENV_PY" "$REPO_ROOT/evaluation/run_eval.py"
         ;;
     *)
-        echo "사용법: $0 {setup|data|start|eval}" >&2
+        echo "사용법: $0 {setup|data|start|api|eval}" >&2
         exit 1
         ;;
 esac
