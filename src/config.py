@@ -14,9 +14,12 @@ EMBEDDING_MODEL_ID = "amazon.titan-embed-text-v2:0"
 
 # make_chat_llm()을 호출할 때마다 이 목록을 순서대로 돌려쓴다(itertools.cycle) - 여러 모델을
 # 등록해두면 한 모델의 일일/분당 토큰 한도에 몰려 ThrottlingException이 나는 걸 분산시킬 수
-# 있다. 지금은 global.anthropic.claude-sonnet-4-6 단일 모델만 쓰도록 고정했다 - 로테이션이
-# 다시 필요하면 이 리스트에 모델 ID를 더 추가하면 된다.
+# 있다. Amazon Nova(lite/pro)로 평가셋을 돌려봤더니 툴 호출 스킵, 반복 루프, 무한 핸드오프,
+# 텍스트 깨짐 등 실행마다 다른 결함이 나타나 이 프로젝트의 "계산은 반드시 tool로" 원칙에
+# 맞지 않는다고 판단해 Claude Sonnet 3개 모델 순환으로 되돌렸다.
 CHAT_MODEL_IDS = [
+    "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    "us.anthropic.claude-sonnet-4-6",
     "global.anthropic.claude-sonnet-4-6",
 ]
 

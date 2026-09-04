@@ -86,6 +86,7 @@ def calculate_budget_allocation(
 
         local_budget = total_budget - round_trip_transport_cost
         unknown_tags = [t for t in taste_tags if t.strip() not in TASTE_ADJUSTMENTS]
+        known_tags = [t for t in taste_tags if t.strip() in TASTE_ADJUSTMENTS]
         weights = _adjust_weights(taste_tags)
         allocation = _allocate(local_budget, weights)
 
@@ -114,7 +115,13 @@ def calculate_budget_allocation(
             "days": days,
             "people": people,
             "taste_tags": taste_tags,
+            "applied_taste_tags": known_tags,
             "unknown_taste_tags": unknown_tags,
+            # 취향 태그로 가중치가 실제로 얼마나 바뀌었는지 Agent가 문장으로 설명할 수 있도록
+            # 기본 비중과 조정된 비중을 함께 내려준다 (%, 소수 1자리) - 이게 없으면 Agent가
+            # 최종 금액만 보고는 "가중치가 조정됐다"는 근거를 댈 수 없다.
+            "base_weights_percent": {k: round(v * 100, 1) for k, v in BASE_WEIGHTS.items()},
+            "weights_percent": {k: round(v * 100, 1) for k, v in weights.items()},
             "allocation": allocation,
             "per_day_average": round(local_budget / days),
             "per_person_average": round(local_budget / people),
